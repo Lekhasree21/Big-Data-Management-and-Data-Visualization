@@ -1,0 +1,89 @@
+train_f = foreach train_f generate id,Gender_f,Age,Driving_License,Region_Code,Previously_Insured,vehicle_age_f,Vehicle_Damage_f,Annual_Premium,Policy_Sales_Channel,Vintage,Response;
+
+filtering = filter train_f by id < 6;
+describe train_f;
+
+grunt> STORE train_f INTO '/user/lekhasree/analysis/train_f' USING PigStorage(',')
+
+hdfs dfs  -copyToLocal /user/lekhasree/analysis/train_f /home/lekhasree/Desktop/Insurance/
+
+pyspark
+
+from pyspark.sql import SparkSession
+import pandas
+from pyspark.sql.functions import when
+from sklearn import model_selection
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+import matplotlib as plt
+import seaborn as sns
+
+data_load = SparkSession.Builder().master("local[1]").appName("data load").getOrCreate()
+
+spark_data = spark.read.options(header='True', inferSchema='True', delimiter=',').csv("/home/lekhasree/Desktop/Health_Insurance_analysis/train.csv")
+
+spark_data.columns
+len(spark_data.columns)
+
+spark_data.show(5)
+
+spark_data.select(‘Id’,’Gender’).show(5)
+
+spark_data.dtypes
+
+spark_data.printSchema()
+
+df_with_dummies = spark_data.withColumn("Gender_Male", when (spark_data.Gender == 1, 1).otherwise(0)).withColumn("Gender_Female", when (spark_data.Gender == 0, 1).otherwise(0)).withColumn("Previously_Insured Yes", when (spark_data.Previously_Insured == 1, 1).otherwise(0)).withColumn("Previously_Insured No", when (spark_data.Previously_Insured == 0, 1).otherwise(0)).withColumn("Vehicle damage Yes", when (spark_data.Vehicle_Damage == 1, 1).otherwise(0)).withColumn("Vehicle damage No", when (spark_data.Vehicle_Damage == 0, 1).otherwise(0)).withColumn("Vehicle Damage Yes ", when (spark_data.Vehicle_Damage == 1, 1).otherwise(0)).withColumn("Vehicle Damage No ", when (spark_data.Vehicle_Damage == 0, 1).otherwise(0))
+
+df_pandas_dummies = df_with_dummies.toPandas()
+
+df_pandas_dummies = df_pandas_dummies.drop("Driving_License",axis=1)
+plt.figure(figsize=(20,20))
+sns.heatmap(df_pandas_dummies.corr(), annot=True, cmap="YlGnBu")
+plt.show()
+
+
+array_data = df_pandas_dummies.values
+X = df_pandas_dummies.drop(columns=' Response').to_numpy()
+X.shape
+Y = df_pandas_dummies[' Response']
+df_pandas_dummies.shape
+
+Y.shape
+
+all_models = []
+
+all_models.append(('Logistic Regression', LogisticRegression()))
+all_models.append(('Decision Tree', DecisionTreeClassifier()))
+all_models.append(('Random Forest', RandomForestClassifier()))
+
+all_models
+
+output = []
+model_name = []
+
+to_df = []
+
+for name, model in all_models:
+	splitting = model_selection.KFold(n_splits=10, random_state=7)
+	calculation = model_selection.cross_val_score(model, X, Y, cv=splitting, scoring='accuracy')
+	output.append(calculation)
+	model_name.append(name)
+	result = "%s: %f: %f" % (name, calculation.mean(), calculation.std())
+	to_df.append(result)
+	print(result)
+
+to_df
+
+print(output)
+
+output[0]
+
+to_csv = to_dataframe[0].to_csv("/home/lekhasree/Desktop/Insurance/model_prediction.csv", encoding="UTF-8", header= False)
+
+
+from pandas import DataFrame
+
+to_dataframe = DataFrame (to_df)
+to_dataframe
