@@ -1,9 +1,6 @@
 Java -version
-
 hadoop
-
 pig -version
-
 spark
-
 pyspark
+Tableau
