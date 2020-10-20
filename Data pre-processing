@@ -1,0 +1,13 @@
+start-all.sh
+
+mr-jobhistory-daemon.sh start historyserver
+
+hdfs dfs -ls -R /
+
+hdfs dfs -mkdir /user/lekhasree/Insurance/
+
+hdfs dfs -put /home/lekhasree/Desktop/Health_Insurance_analysis/train/train.csv /user/lekhasree/Insurance/train.csv
+
+pig -x mapreduce
+
+train = LOAD '/user/lekhasree/Insurance/train.csv' USING PigStorage(',')as ( id:INT, Gender:CHARARRAY, Age:INT, Driving_License:INT, Region_Code:DOUBLE, Previously_Insured:INT, Vehicle_Age:CHARARRAY, Vehicle_Damage:CHARARRAY, Annual_Premium:DOUBLE, Policy_Sales_Channel:DOUBLE, Vintage:INT,Response:INT );
