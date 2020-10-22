@@ -1,0 +1,65 @@
+pig -x mapreduce
+
+train = LOAD '/user/lekhasree/Insurance/train.csv' USING PigStorage(',')as ( id:INT, Gender:CHARARRAY, Age:INT, Driving_License:INT, Region_Code:DOUBLE, Previously_Insured:INT, Vehicle_Age:CHARARRAY, Vehicle_Damage:CHARARRAY, Annual_Premium:DOUBLE, Policy_Sales_Channel:DOUBLE, Vintage:INT,Response:INT );
+
+filtering = filter train by id < 6;
+
+dump filtering;
+
+describe train;
+
+null_val = FILTER train BY $0*$2*$3*$4*$5*$8*$9*$10*$11 is null;
+
+dump null_val;
+
+grouping = group train by Region_Code;
+counting = foreach grouping generate group,COUNT(train);
+dump counting;
+
+grouping = group train by Gender;
+counting = foreach grouping generate group,COUNT(train);
+
+dump counting;
+
+train_f = foreach train generate ..Response,(Gender=='Male'?1:0) as Gender_f;
+
+describe train_f;
+
+train_f = foreach train_f GENERATE ..Gender_f, (CASE WHEN Age <20 THEN 'TEEN' WHEN (Age >19 and Age <40) THEN 'ADULT' WHEN (Age>39 and Age <60) THEN 'MIDDLE AGE ADULT' WHEN Age > 59 THEN 'SENIOR ADULT' END) as age_f;
+
+filtering = foreach train_f generate by id < 6;
+
+dump filtering;
+
+grouping = group train_f by Vehicle_Age;
+counting = foreach grouping generate group,COUNT(train_f);
+
+train_f = foreach train_f GENERATE ..age_f, (CASE Vehicle_Age WHEN '< 1 Year' THEN 0 WHEN '1-2 Year' THEN 1 WHEN '> 2 Years' THEN 2 END) as vehicle_age_f;
+
+describe train_f;
+
+filtering = foreach tarin_f generate by id < 6;
+
+dump filtering;
+
+grouping = group train_f by Vehicle_Damage;
+counting = foreach grouping generate group,COUNT(train_f);
+
+train_f = foreach train_f generate ..vehicle_age_f, (Vehicle_Damage=='Yes'?1:0) as Vehicle_Damage_f;
+
+filtering = filter train_f by id < 6;
+dump filtering;
+
+train_f = foreach train_f generate ..Vehicle_Damage_f,(Response==1 ? 'Interested':'Not Interested') as Response_f;
+
+filtering = filter train_f by id < 6;
+dump filtering;
+
+train_f = foreach train_f generate id,Gender_f,Age,Driving_License,Region_Code,Previously_Insured,vehicle_age_f,Vehicle_Damage_f,Annual_Premium,Policy_Sales_Channel,Vintage,Response;
+
+filtering = filter train_f by id < 6;
+describe train_f;
+
+grunt> STORE train_f INTO '/user/lekhasree/analysis/train_f' USING PigStorage(',')
+
+hdfs dfs  -copyToLocal /user/lekhasree/analysis/train_f /home/lekhasree/Desktop/Insurance/
