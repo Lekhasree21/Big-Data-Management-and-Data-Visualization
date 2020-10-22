@@ -1,0 +1,31 @@
+from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession
+from pyspark import SparkContext
+import pandas
+from pyspark.sql.functions import when
+from sklearn import model_selection
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+import matplotlib as plt
+import seaborn as sns
+
+data_load = SparkSession.Builder().master("local[1]").appName("data load").getOrCreate()
+
+spark_data = spark.read.options(header='True', inferSchema='True', delimiter=',').csv("/home/lekhasree/Desktop/Health_Insurance_analysis/train.csv")
+
+spark_data.columns
+len(spark_data.columns)
+
+spark_data.show(5)
+
+spark_data.select(‘Id’,’Gender’).show(5)
+
+spark_data.dtypes
+
+spark_data.printSchema()
+
+df_with_dummies = spark_data.withColumn("Gender_Male", when (spark_data.Gender == 1, 1).otherwise(0)).withColumn("Gender_Female", when (spark_data.Gender == 0, 1).otherwise(0)).withColumn("Previously_Insured Yes", when (spark_data.Previously_Insured == 1, 1).otherwise(0)).withColumn("Previously_Insured No", when (spark_data.Previously_Insured == 0, 1).otherwise(0)).withColumn("Vehicle damage Yes", when (spark_data.Vehicle_Damage == 1, 1).otherwise(0)).withColumn("Vehicle damage No", when (spark_data.Vehicle_Damage == 0, 1).otherwise(0)).withColumn("Vehicle Damage Yes ", when (spark_data.Vehicle_Damage == 1, 1).otherwise(0)).withColumn("Vehicle Damage No ", when (spark_data.Vehicle_Damage == 0, 1).otherwise(0))
+
+df_pandas_dummies = df_with_dummies.toPandas()
+df_pandas_dummies = df_pandas_dummies.drop("Driving_License",axis=1)
