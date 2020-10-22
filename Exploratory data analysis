@@ -1,0 +1,3 @@
+plt.figure(figsize=(20,20))
+sns.heatmap(df_pandas_dummies.corr(), annot=True, cmap="YlGnBu")
+plt.show()
