@@ -1,0 +1,43 @@
+from pyspark.ml.feature import OneHotEncoderEstimator, StringIndexer, VectorAssembler
+categorical_features = ['Gender', 'Age', 'Region_Code','Vehicle_Age', 'Vehicle_Damage']
+cats = []
+for cat_f in categorical_features:
+    strIdx = StringIndexer(inputCol = cat_f, outputCol = cat_f + 'Index')
+    encoding = OneHotEncoderEstimator(inputCols=[strIdx.getOutputCol()], outputCols=[cat_f + "classVec"])
+    cats += [strIdx, encoding]
+
+label_strIdx = StringIndexer(inputCol = ' Response', outputCol = 'label')
+cats += [label_strIdx]
+numerical_features = ['Previously_Insured', 'Annual_Premium', 'Policy_Sales_Channel', 'Vintage']
+assemblip = [c + "classVec" for c in categorical_features] + numerical_features
+assembling = VectorAssembler(inputCols=assemblip, outputCol="features")
+cats += [assembling]
+
+columns = spark_df.columns
+
+from pyspark.ml import Pipeline
+pipeline = Pipeline(stages = cats)
+Modelpipe = pipeline.fit(spark_df)
+data_f = Modelpipe.transform(spark_df)
+columns_chosen = ['label', 'features'] + columns
+data_f = data_f.select(columns_chosen)
+data_f.printSchema()
+
+train_d, test_d = data_f.randomSplit([0.7, 0.3], seed = 2018)
+print("Train data Count: " + str(train_d.count()))
+print("Test data Count: " + str(test_d.count()))
+
+from pyspark.ml.classification import RandomForestClassifier
+randforc = RandomForestClassifier(featuresCol = 'features', labelCol = 'label')
+randforcModel = randforc.fit(train_d)
+prediction = randforcModel.transform(test_d)
+
+from pyspark.ml.evaluation import BinaryClassificationEvaluator
+evaluate_d = BinaryClassificationEvaluator()
+print("Test area under ROC: " + str(evaluate_d.evaluate(prediction, {evaluate_d.metricName: "areaUnderROC"})))
+ 
+quit()
+
+stop-all.sh
+
+jps
